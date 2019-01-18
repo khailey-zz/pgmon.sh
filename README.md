@@ -1,4 +1,7 @@
 # pgmon.sh
+
+Output is roughly every 10 seconds
+Output metrics are calculated as rates per second.
  
 $ ./pgmon.sh
 Usage: pgmon.sh [username] [password] [host] <sid=postgres> <port=5432> <runtime=3600>

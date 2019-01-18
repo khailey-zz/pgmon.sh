@@ -334,7 +334,7 @@ function wts
      UPDATE vars SET value = ( select sum(pg_stat_database.tup_deleted) from pg_stat_database) where nm='tup_deleted';
      UPDATE vars SET value = ( select sum(pg_stat_all_tables.n_tup_del) from pg_stat_all_tables) where nm='n_tup_del';
      UPDATE vars SET value = ( select sum(heap_blks_read) from pg_statio_all_tables) where nm='heap_blks_read';
-     UPDATE vars SET value = ( select count(*) from pg_stat_activity where state not like 'idle%' and pid !=  pg_backend_pid() )  where nm='AAS';
+     UPDATE vars SET value = ( select count(*) from pg_stat_activity where state not like 'idle%' )  where nm='AAS';
      \o 
 EOF
 }
@@ -363,7 +363,7 @@ function title
 {
   cat << EOF
      select
-         'AAS           ',
+         'AAS',
          'blks_hit      ',
          'blks_read     ',
          'blk_read_time ',
@@ -470,11 +470,11 @@ oldsecs=$secs
             secs=`date '+%s'`
             # echo " export elapsed=expr $secs - $oldsecs"
             export elapsed=`expr $secs - $oldsecs`
-            echo -n  "e$elapsed"
+            #echo -n  "e$elapsed"
             for i in  $FAST_SAMPLE; do
               # prepend each line with the current time 0-235959
               cat ${TMP}/vdbmon_${TARGET}_${i}.tmp  | grep -v '^$' | sed -e 's/XXX.*//'  | \
-                  /usr/bin/awk -F "|" -v elapsed="$elapsed"  '{ printf("%10i ",$1); for(i = 2; i <= NF; i++) { printf("%16.2f ", $i/elapsed ); }}; END { print "" }'
+                  /usr/bin/awk -F "|" -v elapsed="$elapsed"  '{ printf(" %-10i ",$1); for(i = 2; i <= NF; i++) { printf("%-16.2f ", $i/elapsed ); }}; END { print "" }'
               cat ${TMP}/vdbmon_${TARGET}_${i}.tmp  | sed -e "s/^/$last_sec,/" >>${MON_HOME}/${CURR_DATE}/${TARGET}:${i}$SUF
             done
             oldsecs=$secs

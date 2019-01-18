@@ -1,11 +1,11 @@
+#!/bin/bash
 
+UN=kyle
+PW=kyle
+HOST=mymachine.com
 
-UN=kylelf
-PW=kylelf17
-PW=kylelf
-HOST=kylelf2.c3o7fyskibto.us-east-1-beta.rds.amazonaws.com
-HOST=kr4.c3o7fyskibto.us-east-1-beta.rds.amazonaws.com
-SID=kylelf
+SID=postgres
+
 PORT=5432 
 
 RUN_TIME=43200     # total run time, 12 hours default 43200
@@ -17,11 +17,9 @@ RUN_TIME=-1        #  run continuously
 
 function usage
 {
-       echo "Usage: $(basename $0) [username] [password] [host] [sid:$SID] <port=$PORT> <runtime=3600>"
+       echo "Usage: $(basename $0) [username] [password] [host] <sid=$SID> <port=$PORT> <runtime=3600>"
        exit
 }
-
-echo "$# =" $#
 
 [[ $# -lt 3 ]] && usage
 
@@ -365,17 +363,17 @@ function title
 {
   cat << EOF
      select
-         'AAS',
-         'blks_hit',
-         'blks_read',
-         'blk_read_time',
+         'AAS           ',
+         'blks_hit      ',
+         'blks_read     ',
+         'blk_read_time ',
          'blk_write_time',
-         'tup_returned',
-         'tup_fetched',
-         'tup_inserted',
-         'tup_updated',
-         'tup_deleted',
-         'n_tup_del',
+         'tup_returned  ',
+         'tup_fetched   ',
+         'tup_inserted  ',
+         'tup_updated   ',
+         'tup_deleted   ',
+         'n_tup_del     ',
          'heap_blks_read';
 EOF
 }
@@ -383,8 +381,9 @@ EOF
 function setup_sql 
 {
   cat << EOF
-       SET client_min_messages TO WARNING;
      \o  /dev/null
+       \timing
+       SET client_min_messages TO WARNING;
        create temp table vars (nm varchar(30), value bigint);
        insert into vars select 'blks_hit', sum(blks_hit) from  pg_stat_database; 
        insert into vars select 'blks_read', sum(blks_read) from  pg_stat_database; 
@@ -430,6 +429,9 @@ EOF
      LAST_DATE=$(date "+%u")  
      midnight=1
  
+secs=`date '+%s'`
+oldsecs=$secs
+
 # BEGIN COLLECT LOOP
     if [[ $CONNECTED -eq 1 ]]; then
      check_exit
@@ -465,17 +467,25 @@ EOF
                ${i} >> $PIPE
             done
             testconnect
+            secs=`date '+%s'`
+            # echo " export elapsed=expr $secs - $oldsecs"
+            export elapsed=`expr $secs - $oldsecs`
+            echo -n  "e$elapsed"
             for i in  $FAST_SAMPLE; do
               # prepend each line with the current time 0-235959
-              cat ${TMP}/vdbmon_${TARGET}_${i}.tmp  | grep -v '^$' | sed -e 's/XXX.*//' 
+              cat ${TMP}/vdbmon_${TARGET}_${i}.tmp  | grep -v '^$' | sed -e 's/XXX.*//'  | \
+                  /usr/bin/awk -F "|" -v elapsed="$elapsed"  '{ printf("%10i ",$1); for(i = 2; i <= NF; i++) { printf("%16.2f ", $i/elapsed ); }}; END { print "" }'
               cat ${TMP}/vdbmon_${TARGET}_${i}.tmp  | sed -e "s/^/$last_sec,/" >>${MON_HOME}/${CURR_DATE}/${TARGET}:${i}$SUF
             done
+            oldsecs=$secs
        fi
        midnight=0;
        #sleep $SLEEP 
-       sleep 1 
+       sleep 9
        debug "sleeping 1"
        #debug "sleeping $SAMPLE_RATE"
+
+
      done
    fi
  # END COLLECT LOOP
